@@ -1,0 +1,65 @@
+{
+  "name": "promptfence",
+  "version": "0.1.0",
+  "description": "Static analysis for AI agents in GitHub Actions — finds where attacker-controlled text reaches an agent's prompt, and what that agent is allowed to do with it.",
+  "keywords": [
+    "github-actions",
+    "prompt-injection",
+    "ai-agents",
+    "ci-cd",
+    "security",
+    "static-analysis",
+    "supply-chain",
+    "sarif",
+    "llm-security",
+    "developer-tools"
+  ],
+  "homepage": "https://github.com/hamodywe/promptfence#readme",
+  "bugs": {
+    "url": "https://github.com/hamodywe/promptfence/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hamodywe/promptfence.git"
+  },
+  "license": "MIT",
+  "author": "hamodywe",
+  "type": "module",
+  "engines": {
+    "node": ">=20.10.0"
+  },
+  "bin": {
+    "promptfence": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "prepublishOnly": "npm run clean && npm run build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test \"test/*.test.ts\"",
+    "test:coverage": "node --test --experimental-test-coverage \"test/*.test.ts\"",
+    "selfcheck": "node src/cli.ts scan examples"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {},
+  "publishConfig": {
+    "access": "public"
+  }
+}

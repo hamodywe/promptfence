@@ -1,0 +1,200 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (node ${{ matrix.node }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows and macOS are not optional: discovery walks the filesystem and
+        # compares paths, and the parser's behaviour on line endings differs.
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        # The suite runs the TypeScript sources directly, which needs the type
+        # stripping that became the default in Node 22.18. The published package
+        # is compiled and supports Node 20.10 — verified by `supported-runtime`
+        # below rather than assumed here.
+        node: ['22.18', '24']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify the built CLI runs
+        run: node dist/cli.js --version
+
+  supported-runtime:
+    name: oldest supported runtime (node 20.10)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Build on a modern Node, then run the output on the oldest version the
+      # `engines` field claims to support. This is the only thing that keeps
+      # that claim honest.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.10'
+
+      - name: Run the built CLI on the oldest supported Node
+        run: |
+          node --version
+          node dist/cli.js --version
+          node dist/cli.js scan examples --json > report.json
+          node -e "
+            const r = require('./report.json');
+            if (r.schemaVersion !== 1) throw new Error('unexpected schema version');
+            if (r.workflows.length !== 4) throw new Error('expected 4 example workflows');
+            console.log('ok on node ' + process.version);
+          "
+
+  selfcheck:
+    name: self-analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      # This repository runs no AI agents in CI, so a scan of its own workflows
+      # must be clean. If that ever changes, this job is the thing that notices.
+      - name: Analyse this repository's own workflows
+        run: |
+          node src/cli.ts scan . --json > self.json
+          node -e "
+            const r = require('./self.json');
+            if (r.summary.agentJobs !== 0) {
+              console.log(JSON.stringify(r.summary, null, 2));
+              throw new Error('an AI agent has appeared in this repository\'s CI');
+            }
+            if (r.summary.unanalysable !== 0) {
+              throw new Error('a workflow in this repository could not be parsed');
+            }
+            console.log('own workflows: ' + r.summary.workflows + ' analysed, no agents');
+          "
+
+      # The fixtures are deliberately vulnerable, so findings are expected. What
+      # is verified is that the documented ones are still found — and that the
+      # correct fixture is still silent.
+      - name: Scan the example workflows
+        run: node src/cli.ts scan examples --json > report.json
+
+      - name: Verify the fixtures report what their comments claim
+        run: |
+          node -e "
+            const r = require('./report.json');
+            const by = Object.fromEntries(r.workflows.map((w) => [w.path.split('/').pop(), w]));
+            const rules = (name) => by[name].findings.map((f) => f.ruleId);
+
+            for (const id of ['agent-ingests-untrusted-event', 'agent-reads-interpolated-input']) {
+              if (!rules('issue-triage.yml').includes(id)) throw new Error('issue-triage lost ' + id);
+            }
+            if (!rules('pr-review.yml').includes('untrusted-checkout-with-agent')) {
+              throw new Error('pr-review lost untrusted-checkout-with-agent');
+            }
+
+            // The clean fixture must stay clean. A rule that fires here fires everywhere.
+            if (by['nightly-docs.yml'].findings.length !== 0) {
+              console.log(JSON.stringify(by['nightly-docs.yml'].findings, null, 2));
+              throw new Error('a rule fired on the workflow that is supposed to be correct');
+            }
+
+            // The same interpolation must rate lower on a fork-only trigger.
+            const fork = by['fork-safe.yml'].findings.find((f) => f.ruleId === 'agent-reads-interpolated-input');
+            const priv = by['issue-triage.yml'].findings.find((f) => f.ruleId === 'agent-reads-interpolated-input');
+            if (fork.severity === priv.severity) {
+              throw new Error('fork pull_request is being rated the same as issue_comment');
+            }
+
+            console.log('fixtures ok: ' + r.summary.findings + ' findings, ' + JSON.stringify(r.summary.bySeverity));
+          "
+
+      - name: Verify SARIF output is well-formed
+        run: |
+          node src/cli.ts scan examples --sarif > results.sarif
+          node -e "
+            const s = JSON.parse(require('fs').readFileSync('results.sarif', 'utf8'));
+            if (s.version !== '2.1.0') throw new Error('unexpected SARIF version');
+            const rules = new Set(s.runs[0].tool.driver.rules.map((r) => r.id));
+            if (!rules.size) throw new Error('no rule descriptors');
+            for (const result of s.runs[0].results) {
+              if (!rules.has(result.ruleId)) throw new Error('undeclared rule: ' + result.ruleId);
+            }
+            console.log('sarif ok: ' + s.runs[0].results.length + ' results');
+          "
+
+      - name: The gate should fail on the fixtures
+        run: |
+          if node src/cli.ts check examples --quiet; then
+            echo 'the gate passed on workflows it is supposed to fail'
+            exit 1
+          fi
+          echo 'gate failed as expected'
+
+  publint:
+    name: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+      - name: Check the published package shape
+        run: |
+          npm pack --dry-run
+          node -e "
+            const fs = require('fs');
+            for (const f of ['dist/cli.js', 'dist/index.js', 'dist/index.d.ts']) {
+              if (!fs.existsSync(f)) throw new Error('missing from build: ' + f);
+            }
+            const pkg = require('./package.json');
+            if (Object.keys(pkg.dependencies || {}).length) {
+              throw new Error('promptfence must ship with zero runtime dependencies');
+            }
+            for (const hook of ['preinstall', 'install', 'postinstall']) {
+              if (pkg.scripts?.[hook]) throw new Error('promptfence must not ship an install script');
+            }
+            console.log('package shape ok');
+          "

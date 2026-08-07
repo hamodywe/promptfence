@@ -1,0 +1,41 @@
+# FIXTURE — deliberately vulnerable. Do not copy.
+#
+# The classic pull_request_target mistake, with an agent on top. The trigger
+# runs in the base repository's context — secrets, writable token — and the
+# checkout pulls the contributor's code into it.
+#
+# Without the agent this is already a known bug that zizmor will find. With the
+# agent it is worse: instructions can be left in any file the agent opens, not
+# only in files the build executes.
+
+name: PR review
+
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Fetch the discussion so far
+        run: |
+          gh pr view "$PR" --comments > /tmp/context.md
+        env:
+          PR: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Review
+        run: |
+          claude -p "Review this pull request. Context: $(cat /tmp/context.md).
+                     Branch: ${{ github.head_ref }}"
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

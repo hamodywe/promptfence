@@ -1,0 +1,44 @@
+name: Feature request
+description: Suggest something promptfence should do
+title: '[feature] '
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please check [ROADMAP.md](https://github.com/hamodywe/promptfence/blob/main/ROADMAP.md)
+        first — it lists what is planned, what is being considered, and what has
+        been deliberately ruled out along with the reasoning.
+
+        If your idea is in "Considering", saying you want it is genuinely
+        useful: that section exists because those items need evidence of demand
+        before they earn their maintenance cost.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the situation you were in, not the feature.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What do you have in mind?
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Constraints
+      description: >
+        These are non-negotiable properties. A proposal needing one relaxed will
+        very likely be declined — but say so honestly rather than leaving it to
+        be discovered later.
+      options:
+        - label: This can be done with zero runtime dependencies
+        - label: This works offline, with no network access and no LLM call
+        - label: This is deterministic — the same input always produces the same output
+        - label: This does not duplicate what zizmor or actionlint already do well

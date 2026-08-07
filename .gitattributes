@@ -1,0 +1,11 @@
+# Normalise line endings in the repository.
+#
+# Test fixtures assert on exact parser behaviour, including CRLF handling, so a
+# checkout that rewrites line endings inconsistently across platforms would make
+# the suite pass on one machine and fail on another.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary

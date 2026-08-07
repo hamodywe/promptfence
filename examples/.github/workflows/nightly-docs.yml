@@ -1,0 +1,33 @@
+# FIXTURE — an agent job with nothing wrong with it.
+#
+# A scheduled trigger carries no outsider-written content, permissions are
+# declared and narrow, the action is pinned to a commit, and the only secret in
+# scope is the model key the agent needs to exist at all.
+#
+# Every security tool needs a case it is supposed to stay quiet about. This is
+# that case, and the fixture suite asserts on it — a rule that fires here is a
+# rule that would fire everywhere.
+
+name: Nightly docs pass
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  tidy-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tidy the documentation
+        uses: anthropics/claude-code-base-action@f8a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3
+        with:
+          prompt: 'Fix typos and broken links in docs/. Open a pull request with the result.'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

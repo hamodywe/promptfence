@@ -1,0 +1,31 @@
+# FIXTURE — the same interpolation, on a trigger that cannot do much with it.
+#
+# `pull_request` from a fork runs with a read-only token and no repository
+# secrets. The agent still reads the contributor's title, and an injection here
+# still misbehaves — but it has nothing to reach.
+#
+# This file exists to show promptfence rating the identical construction lower
+# than in issue-triage.yml. A tool that scores both the same is wrong twice: it
+# cries wolf here, and by doing so teaches people to scroll past the other one.
+
+name: Summarise pull requests
+
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  contents: read
+
+jobs:
+  summarise:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Summarise
+        uses: anthropics/claude-code-base-action@f8a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3
+        with:
+          prompt: 'Summarise this change in one sentence: ${{ github.event.pull_request.title }}'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

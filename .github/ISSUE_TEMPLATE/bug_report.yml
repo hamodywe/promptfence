@@ -1,0 +1,56 @@
+name: Bug report
+description: promptfence crashed, hung, or failed to parse a valid workflow
+title: '[bug] '
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If a *verdict* is wrong, please use the **false finding** template
+        instead — it asks for the right information.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: workflow
+    attributes:
+      label: The workflow, if one is involved
+      description: >
+        Especially useful for parse failures. The smallest version that still
+        reproduces it.
+      render: yaml
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: The full output, including any stack trace.
+      render: text
+
+  - type: input
+    id: version
+    attributes:
+      label: promptfence version
+      placeholder: 0.1.0
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Node version and OS
+      placeholder: node 22.18, Ubuntu 24.04
+    validations:
+      required: true

@@ -1,0 +1,71 @@
+name: False finding
+description: A verdict promptfence got wrong — flagged something fine, or missed an agent
+title: '[false finding] '
+labels: [false-finding]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the most valuable issue you can open.
+
+        A security tool's worth rests entirely on its verdicts being
+        trustworthy. One that cries wolf gets switched off; one that misses
+        things is worse, because it is reassuring.
+
+  - type: dropdown
+    id: direction
+    attributes:
+      label: Which way is it wrong?
+      options:
+        - Flagged a workflow that is genuinely fine
+        - Missed an AI agent step entirely
+        - Missed a way outsider text reaches the agent
+        - Right finding, wrong severity
+    validations:
+      required: true
+
+  - type: input
+    id: rule
+    attributes:
+      label: Rule id
+      description: Leave blank if the problem is that nothing fired.
+      placeholder: agent-ingests-untrusted-event
+
+  - type: textarea
+    id: workflow
+    attributes:
+      label: The workflow
+      description: >
+        The smallest version that still shows the problem. Redact names and
+        secrets — the structure is what matters.
+      render: yaml
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: What promptfence said
+      description: Output of `promptfence scan <path>`. Paste `(nothing)` if it was silent.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should it have said, and why?
+      description: >
+        If it flagged something fine, what makes it fine — a gate on
+        `author_association`, permissions narrower than they look, a trigger
+        that cannot reach anything? If it missed an agent, which product is it?
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: promptfence version
+      placeholder: 0.1.0
+    validations:
+      required: true

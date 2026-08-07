@@ -1,0 +1,20 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/hamodywe/promptfence/security/advisories/new
+    about: >
+      Please report privately, not as a public issue. SECURITY.md describes what
+      is in scope for this tool.
+  - name: You found a vulnerable workflow in someone else's repository
+    url: https://docs.github.com/en/site-policy/security-policies/coordinated-disclosure-of-security-vulnerabilities
+    about: >
+      Report it to that repository's maintainers, privately. promptfence is the
+      messenger.
+  - name: General GitHub Actions security
+    url: https://github.com/woodruffw/zizmor
+    about: >
+      promptfence only reports on jobs that run an AI agent. For workflow
+      security in general, zizmor is the tool.
+  - name: Question or idea
+    url: https://github.com/hamodywe/promptfence/discussions
+    about: For anything that is not a bug report or a concrete proposal.

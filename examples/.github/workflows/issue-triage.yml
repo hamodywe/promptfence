@@ -1,0 +1,42 @@
+# FIXTURE — deliberately vulnerable. Do not copy.
+#
+# This file lives under examples/ and not at the repository root, so GitHub
+# never runs it. It exists so promptfence has something to find.
+#
+# It is close to the quickstart in several agent actions' READMEs, which is the
+# point: this shape is not exotic, it is the default.
+
+name: Issue triage
+
+on:
+  issue_comment:
+    types: [created]
+  issues:
+    types: [opened]
+
+# Nothing declared here, so the repository default applies — on many
+# repositories that is write access to almost every scope.
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ask the agent to triage
+        uses: anthropics/claude-code-action@v1
+        with:
+          prompt: |
+            A user reported the following. Label it, and if it is a trivial
+            typo fix, make the change and push it.
+
+            ${{ github.event.issue.body }}
+            ${{ github.event.comment.body }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          AWS_ROLE: ${{ secrets.AWS_DEPLOY_ROLE }}
