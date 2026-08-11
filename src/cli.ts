@@ -11,6 +11,7 @@
  *   2  bad usage, or a path that could not be read
  */
 
+import { realpathSync } from 'node:fs';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 import { parseArgs, UsageError, type ParsedArgs } from './cli/args.ts';
@@ -207,7 +208,18 @@ function wrap(text: string, width: number, indent: string): string {
 // Run only when invoked as a program, so the fixture suite can import `main`.
 // `pathToFileURL` is what makes this correct on Windows.
 const entryPoint = process.argv[1];
-const invokedDirectly = entryPoint !== undefined && import.meta.url === pathToFileURL(entryPoint).href;
+// npm installs bins as symlinks and Node resolves the main module to its real
+// path, so comparing against the raw argv[1] would never match on Linux or
+// macOS — the CLI would print nothing and exit 0.
+const entryUrl = (): string => {
+  try {
+    return pathToFileURL(realpathSync(entryPoint as string)).href;
+  } catch {
+    return pathToFileURL(entryPoint as string).href;
+  }
+};
+
+const invokedDirectly = entryPoint !== undefined && import.meta.url === entryUrl();
 
 if (invokedDirectly) {
   main(process.argv.slice(2)).then(
