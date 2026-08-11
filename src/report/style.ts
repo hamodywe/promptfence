@@ -90,8 +90,17 @@ const EIGHTHS = ['', '▏', '▎', '▍', '▌', '▋', '▊', '▉'] as const;
 export function bar(fraction: number, width: number): string {
   const clamped = Math.max(0, Math.min(1, fraction));
   const total = clamped * width;
-  const full = Math.floor(total);
-  const remainder = Math.round((total - full) * 8);
+  let full = Math.floor(total);
+  let remainder = Math.round((total - full) * 8);
+
+  // Rounding can land on 8/8 of a cell, which is not a partial glyph but the
+  // next full block. Without this promotion EIGHTHS[8] is undefined, the
+  // fallback renders nothing, and the bar comes out a whole cell short of the
+  // percentage its own label shows.
+  if (remainder === 8) {
+    full += 1;
+    remainder = 0;
+  }
 
   const filled = '█'.repeat(full) + (EIGHTHS[remainder] ?? '');
   return padEnd(filled, width);
